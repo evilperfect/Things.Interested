@@ -16,7 +16,7 @@ do
   if [ -d $i ]
   then
     cd $i
-	cmd='git pull origin master'
+	cmd='git pull'
     echo -e "\033[31m  \n $cmd ${dir}"$i.git" \033[0m"
 	eval $cmd
     cd ..
