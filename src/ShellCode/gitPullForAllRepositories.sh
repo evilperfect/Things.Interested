@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-#   Description: Execute 'git pull' command for every .git repositories under one directory '/cygdrive/d/open-src'.
-#   How to use : Put all git repositories in directory '/cygdrive/d/open-src', 
+#   Description: Execute 'git pull' command for every .git repositories under one directory defined by input argument 1.
+#   How to use : Put all git repositories in directory  input argument 1, 
 #                and put this script anywhere you want and execute it.
 
-dir="/cygdrive/d/open-src"
+dir=$1
 pushd $dir >/dev/null
 
 arr=`ls ${dir}`
@@ -17,7 +17,7 @@ do
   then
     cd $i
 	cmd='git pull origin master'
-    echo -e "\033[31m  \n $cmd ${dir}"/$i.git" \033[0m"
+    echo -e "\033[31m  \n $cmd ${dir}"$i.git" \033[0m"
 	eval $cmd
     cd ..
   fi
