@@ -1,0 +1,35 @@
+
+bionic
+busybox
+cppcheck
+gLibc
+google-leveldb
+google-protobuf
+iNodeClient
+iperf
+libev
+libnl
+mdnsd
+mdnsresponder
+    Blog about bonjour
+    http://andriydruk.com/post/mdnsresponder/
+    
+    jmdns: written in java, same as Apple open sorce bonjour, http://jmdns.sourceforge.net/
+    Bonjour: https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/NetServices/Articles/domainnames.html
+net-tools
+njit
+SHNU-h3c-client
+WebBench
+xd-h3c
+
+bochs
+dynamips
+linux
+open bsd
+openssl
+openswan
+ptliar
+HelloChinaOS
+stongswan
+qemu
+vtk
