@@ -1,0 +1,6 @@
+
+#ignore shell script file in root directory
+/*.sh
+
+#ignore all tmp files in every directory
+*.*~
