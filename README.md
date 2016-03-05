@@ -1,4 +1,2 @@
-my-src
-======
+自己的及自己感兴趣的东西。
 
-code about personal study
