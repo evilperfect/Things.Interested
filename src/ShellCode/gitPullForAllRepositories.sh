@@ -5,22 +5,21 @@
 #                and put this script under the directory and execute it. 
 
 dir="/cygdrive/d/open-src"
-ls $dir
 arr=`ls ${dir}`
 
-echo "ready for git pull"
-echo "------------------cut here---------------"
+echo -e "\033[31m  ready for git pull for all .git! \033[0m"
+
 for i in $arr
 do
-echo "find file="$i
   if [ -d $i ]
   then
     cd $i
-    echo "L1 pwd ="$PWD
+	cmd='git pull origin master'
+    echo -e "\033[31m  $cmd ${dir}"/$i.git" \033[0m"
     git pull origin master
     cd ..
-    echo "L2 pwd ="$PWD
   fi
 done
-echo "------------------cut here---------------"
 
+
+echo -e "\033[31m  end for git pull for all .git! \033[0m"
