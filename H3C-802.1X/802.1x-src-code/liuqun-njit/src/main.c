@@ -8,8 +8,13 @@
 
 #include <unistd.h>
 
+#include <termios.h>
+#include <signal.h>
+#include <errno.h>
+
 /* 子函数声明 */
 int Authentication(const char *UserName, const char *Password, const char *DeviceName);
+void SendLogoffPkt(const char *DeviceName);
 
 
 /**
@@ -22,11 +27,32 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
  * 	njit-client  username  password  eth1
  * 若没有从命令行指定网卡，则默认将使用eth0
  */
+ 
+char *DeviceName; 
+
+void exit_handler(int signo, siginfo_t * info, void * p)
+{
+    if(signo == SIGINT)
+    {
+        printf("\n接收到退出信号，准备退出。\n");
+        if(DeviceName != NULL)
+            SendLogoffPkt(DeviceName);
+        printf("bye bye!\n");
+        exit(0);
+    }
+}
+struct sigaction act;
+
 int main(int argc, char *argv[])
 {
+    //注册退出事件函数
+    sigemptyset(&act.sa_mask);
+    act.sa_sigaction = exit_handler;
+    act.sa_flags = SA_SIGINFO;
+
 	char *UserName;
 	char *Password;
-	char *DeviceName;
+
 
 	/* 检查当前是否具有root权限 */
 	if (getuid() != 0) {
@@ -58,4 +84,3 @@ int main(int argc, char *argv[])
 
 	return (0);
 }
-
