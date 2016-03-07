@@ -125,7 +125,7 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 	uint8_t	MAC[6];
 	char	FilterStr[100];
 	struct bpf_program	fcode;
-	const int DefaultTimeout=1000;//设置接收超时参数，单位ms
+	const int DefaultTimeout=2000;//设置接收超时参数，单位ms
 
 	// NOTE: 这里没有检查网线是否已插好,网线插口可能接触不良
 	/* 检查网线是否已插好,网线插口可能接触不良 */
@@ -334,6 +334,7 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 				else
 				{
 					DPRINTF("errtype=0x%02x\n", errtype);
+					goto START_AUTHENTICATION;
 					exit(-1);
 				}
 			}
