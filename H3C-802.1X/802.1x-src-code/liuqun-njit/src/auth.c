@@ -1,9 +1,7 @@
 /* File: auth.c
  * ------------
- * 注：核心函数为Authentication()，由该函数执行801.1X认证
+ * 注：核心函数为Authentication()，由该函数执行801.1X报文获取，分析及认证
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +24,7 @@
 
 int Authentication(const char *UserName, const char *Password, const char *DeviceName);
 void SendLogoffPkt(pcap_t *adhandle, const uint8_t mac[]);
+
 // 自定义常量
 typedef enum {REQUEST=1, RESPONSE=2, SUCCESS=3, FAILURE=4, H3CDATA=10} EAP_Code;
 typedef enum {IDENTITY=1, NOTIFICATION=2, MD5=4, AVAILABLE=20} EAP_Type;
@@ -38,7 +37,6 @@ const char H3C_KEY[64]    ="HuaWei3COM1X";  // H3C的固定密钥
 
 // 子函数声明
 static void SendStartPkt(pcap_t *adhandle, const uint8_t mac[]);
-
 static void SendResponseIdentity(pcap_t *adhandle,
 			const uint8_t request[],
 			const uint8_t ethhdr[],
@@ -57,21 +55,16 @@ static void SendResponseAvailable(pcap_t *adhandle,
 static void SendResponseNotification(pcap_t *handle,
 		const uint8_t request[],
 		const uint8_t ethhdr[]);
-
 static void GetMacFromDevice(uint8_t mac[6], const char *devicename);
-
 static void FillClientVersionArea(uint8_t area[]);
 static void FillWindowsVersionArea(uint8_t area[]);
 static void FillBase64Area(char area[]);
 // From fillmd5.c
 extern void FillMD5Area(uint8_t digest[],
 	       	uint8_t id, const char passwd[], const uint8_t srcMD5[]);
-
 // From ip.c
 extern void GetIpFromDevice(uint8_t ip[4], const char DeviceName[]);
-
-
-/* 获取网络状态：网线是否插好 */
+//获取网络状态=>网线是否连接
 static int GetNetState(const char *nic_name);
 
 
@@ -175,30 +168,28 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 		usleep(10*1000);
 		
 		cnt = 0;
-		bool serverIsFound = false;
-		while (!serverIsFound)
+		while (1)
 		{
 			retcode = pcap_next_ex(adhandle, &header, &captured);
 			if (retcode==1 && (EAP_Code)captured[18]==REQUEST){
-				serverIsFound = true;
 				break;
 			}	
 			else
 			{	
-			    if(cnt > 50)
+			    if(cnt > 100)
                 {
                     DPRINTF("%s\n", "服务器未响应.....");
                     exit(-1);
                 }
                 
-			    // 延时后重试
+			    // 延时0.5秒后重试
 				usleep(500*1000); 
 				DPRINTF(". wait Server request......");
 				
-				// NOTE: 这里没有检查网线是否接触不良或已被拔下
+				// 检查网线是否接触不良或已被拔下
 				if(GetNetState(DeviceName)==-1)
                 {
-                    DPRINTF("%s\n", "网卡异常！请检查网卡名称是否正确，网线是否插好！");
+                    DPRINTF("%s\n", "网卡异常！请检查网卡名称是否正确，网线是否插好后重试！");
                     exit(-1);
                 }
 				
@@ -215,40 +206,6 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 		ethhdr[13] = 0x8e;
 
         DispatchRequest(UserName, Password, DeviceName, adhandle, ethhdr, captured);
-        
-#if 0              
-		// 收到的第一个包可能是Request Notification。取决于校方网络配置
-		if ((EAP_Type)captured[22] == NOTIFICATION)
-		{
-			DPRINTF("[%d] Server: Request Notification!\n", captured[19]);
-			// 发送Response Notification
-			SendResponseNotification(adhandle, captured, ethhdr);
-			DPRINTF("    Client: Response Notification.\n");
-
-			// 继续接收下一个Request包
-			retcode = pcap_next_ex(adhandle, &header, &captured);
-			assert(retcode==1);
-			assert((EAP_Code)captured[18] == REQUEST);
-		}
-
-		// 分情况应答下一个包
-		if ((EAP_Type)captured[22] == IDENTITY)
-		{	// 通常情况会收到包Request Identity，应回答Response Identity
-			DPRINTF("[%d] Server: Request Identity!\n", captured[19]);
-			GetIpFromDevice(ip, DeviceName);
-			SendResponseIdentity(adhandle, captured, ethhdr, ip, UserName);
-			DPRINTF("[%d] Client: Response Identity.\n", (EAP_ID)captured[19]);
-		}
-		else if ((EAP_Type)captured[22] == AVAILABLE)
-		{	// 遇到AVAILABLE包时需要特殊处理
-			// 中南财经政法大学目前使用的格式：
-			// 收到第一个Request AVAILABLE时要回答Response Identity
-			DPRINTF("[%d] Server: Request AVAILABLE!\n", captured[19]);
-			GetIpFromDevice(ip, DeviceName);
-			SendResponseIdentity(adhandle, captured, ethhdr, ip, UserName);
-			DPRINTF("[%d] Client: Response Identity.\n", (EAP_ID)captured[19]);
-		}
-#endif
 
 		// 重设过滤器，只捕获华为802.1X认证设备发来的包（包括多播Request Identity / Request AVAILABLE）
 		sprintf(FilterStr, "(ether proto 0x888e) and (ether src host %02x:%02x:%02x:%02x:%02x:%02x)",
@@ -265,7 +222,7 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 			{
 				DPRINTF(". waiting for Server MSG....."); // 若捕获失败，则等1秒后重试
 				usleep(100*1000);     // 直到成功捕获到一个数据包后再跳出
-				// NOTE: 这里没有检查网线是否已被拔下或插口接触不良
+				// 检查网线是否已被拔下或插口接触不良
 				if(GetNetState(DeviceName)==-1)
                 {
                     DPRINTF("%s\n", "网卡异常！请检查网卡名称是否正确，网线是否插好！");
@@ -335,7 +292,7 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 				{
 					DPRINTF("errtype=0x%02x\n", errtype);
 					goto START_AUTHENTICATION;
-					exit(-1);
+					//exit(-1);
 				}
 			}
 			else if ((EAP_Code)captured[18] == SUCCESS)
@@ -343,7 +300,6 @@ int Authentication(const char *UserName, const char *Password, const char *Devic
 				DPRINTF("[%d] Server: Success.\n", captured[19]);
 				// 刷新IP地址
 				system("njit-RefreshIP");
-				//break;
 			}
 			else if ((EAP_Code)captured[18] == H3CDATA)
 			{
@@ -384,7 +340,7 @@ void GetMacFromDevice(uint8_t mac[6], const char *devicename)
 	return;
 }
 
-/* 获取网络状态：网线是否插好 */
+/* 获取网络状态=>网线是否插好 */
 static int GetNetState(const char *nic_name)
 {
     struct ifreq ifr;
@@ -399,7 +355,8 @@ static int GetNetState(const char *nic_name)
         return -1;
     }
     close(skfd);
-    return (ifr.ifr_flags & IFF_RUNNING)? 0 : -1;
+
+    return ((ifr.ifr_flags & IFF_UP) && (ifr.ifr_flags & IFF_RUNNING))? 0 : -1;
 }
 
 
